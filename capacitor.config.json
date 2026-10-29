@@ -1,0 +1,6 @@
+{
+  "appId": "com.baliandesign.pillreminder",
+  "appName": "Таблетки",
+  "webDir": "www",
+  "android": { "allowMixedContent": false }
+}
