@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1fae5b"><meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<title>Таблетки</title></head><body><div id="app"></div>
+<script>/* Языки, фразы и тексты интерфейса */
+const LANGS = {
+  ru: { name: 'Русский', speech: 'ru-RU', pill: 'Примите таблетку' },
+  zh: { name: '中文', speech: 'zh-CN', pill: '请吃药' },
+  es: { name: 'Español', speech: 'es-ES', pill: 'Tome su pastilla' },
+  en: { name: 'English', speech: 'en-US', pill: 'Take your pill' },
+  de: { name: 'Deutsch', speech: 'de-DE', pill: 'Nehmen Sie Ihre Tablette' },
+  fr: { name: 'Français', speech: 'fr-FR', pill: 'Prenez votre comprimé' },
+  pl: { name: 'Polski', speech: 'pl-PL', pill: 'Weź tabletkę' },
+  hy: { name: 'Հայերեն', speech: 'hy-AM', pill: 'Խմեք հաբը' },
+  ka: { name: 'ქართული', speech: 'ka-GE', pill: 'მიიღეთ ტაბლეტი' }
+};
+const LANG_ORDER = ['ru', 'zh', 'es', 'en', 'de', 'fr', 'pl', 'hy', 'ka'];
+
+const I18N = {
+  ru: {
+    lead: 'Показывать за (мин до приёма)', sound: 'Сигнал', sndVoice: 'Голос', sndMelody: 'Мелодия', sndRing: 'Свой рингтон', pickFile: 'Выбрать файл…', tooBig: 'Файл больше 1 МБ', done: 'Принято',
+    title: 'Таблетки', next: 'Следующий приём', in: 'через {t}', h: 'ч', m: 'мин', none: 'Время не задано',
+    off: 'Приложение отключено', settings: 'Настройки', language: 'Язык', times: 'Приёмов в день', dose: 'Приём',
+    theme: 'Оформление', save: 'Сохранить', saved: 'Сохранено', on: 'Включить приложение', disable: 'Отключить приложение',
+    instruction: 'Инструкция', close: 'Закрыть', test: 'Проверить сигнал', cal: 'Напоминания в календарь (.ics)',
+    soundGate: 'Коснитесь экрана, чтобы разрешить звук', today: 'Сегодня принято',
+    themes: { kids: 'Детский', women: 'Женский', men: 'Мужской', nature: 'Зелёный', night: 'Ночной' },
+    steps: [
+      'Откройте «Настройки» и выберите язык подсказки и голоса.',
+      'Укажите, сколько раз в день нужно принимать таблетку (от 1 до 6) и задайте время каждого приёма.',
+      'Выберите оформление: детское, женское, мужское, зелёное или ночное.',
+      'Нажмите «Сохранить». Приложение само запомнит расписание.',
+      'В нужное время вверху появится большая зелёная кнопка «Примите таблетку», и приложение произнесёт эту фразу. Фраза повторяется, пока вы не нажмёте кнопку.',
+      'Нажмите на большую зелёную кнопку после приёма — сигнал выключится до следующего времени приёма.',
+      '«Отключить приложение» полностью выключает напоминания, «Включить приложение» включает их снова.',
+      'Громкость и яркость настраиваются кнопками телефона или компьютера.',
+      'Приложение само появляется за 5 минут до приёма и исчезает через 5 секунд после нажатия на зелёную кнопку. Открыть его можно значком, закрыть — кнопкой ✖.',
+      'Сигнал можно заменить: голос, мелодия или свой рингтон (Настройки → Сигнал).'
+    ]
+  },
+  zh: {
+    lead: '提前显示（分钟）', sound: '提示音', sndVoice: '语音', sndMelody: '旋律', sndRing: '自定义铃声', pickFile: '选择文件…', tooBig: '文件超过 1 MB', done: '已服药',
+    title: '药片', next: '下次服药', in: '还有 {t}', h: '小时', m: '分钟', none: '未设置时间',
+    off: '应用已关闭', settings: '设置', language: '语言', times: '每天服药次数', dose: '第',
+    theme: '外观', save: '保存', saved: '已保存', on: '开启应用', disable: '关闭应用',
+    instruction: '使用说明', close: '关闭', test: '测试提醒', cal: '导出到日历 (.ics)',
+    soundGate: '请点击屏幕以允许声音', today: '今天已服',
+    themes: { kids: '儿童', women: '女士', men: '男士', nature: '绿色', night: '夜间' },
+    steps: [
+      '打开“设置”，选择提示和语音的语言。',
+      '选择每天服药次数（1 到 6 次），并设置每次的时间。',
+      '选择外观：儿童、女士、男士、绿色或夜间。',
+      '点击“保存”，应用会记住您的时间表。',
+      '到时间后，屏幕上方会出现绿色大按钮“请吃药”，并朗读这句话。在您按下按钮之前会重复提醒。',
+      '服药后点击绿色大按钮，提醒将关闭，直到下一次服药时间。',
+      '“关闭应用”会完全停止提醒，“开启应用”重新开启。',
+      '音量和亮度请用手机或电脑自带的设置调节。',
+      '应用会在服药前 5 分钟自动出现，点击绿色按钮 5 秒后消失。可通过图标打开，通过 ✖ 按钮关闭。',
+      '提示音可更换：语音、旋律或自定义铃声（设置 → 提示音）。'
+    ]
+  },
+  es: {
+    lead: 'Mostrar antes (min)', sound: 'Señal', sndVoice: 'Voz', sndMelody: 'Melodía', sndRing: 'Tono propio', pickFile: 'Elegir archivo…', tooBig: 'El archivo supera 1 MB', done: 'Tomada',
+    title: 'Pastillas', next: 'Próxima toma', in: 'en {t}', h: 'h', m: 'min', none: 'Sin horario',
+    off: 'Aplicación desactivada', settings: 'Ajustes', language: 'Idioma', times: 'Tomas al día', dose: 'Toma',
+    theme: 'Estilo', save: 'Guardar', saved: 'Guardado', on: 'Activar aplicación', disable: 'Desactivar aplicación',
+    instruction: 'Instrucciones', close: 'Cerrar', test: 'Probar aviso', cal: 'Exportar al calendario (.ics)',
+    soundGate: 'Toque la pantalla para permitir el sonido', today: 'Hoy tomadas',
+    themes: { kids: 'Infantil', women: 'Femenino', men: 'Masculino', nature: 'Verde', night: 'Noche' },
+    steps: [
+      'Abra «Ajustes» y elija el idioma del aviso y de la voz.',
+      'Indique cuántas veces al día debe tomar la pastilla (de 1 a 6) y la hora de cada toma.',
+      'Elija el estilo: infantil, femenino, masculino, verde o noche.',
+      'Pulse «Guardar». La aplicación recordará el horario.',
+      'A la hora indicada aparecerá arriba un botón verde grande «Tome su pastilla» y la aplicación dirá la frase. Se repite hasta que pulse el botón.',
+      'Pulse el botón verde grande después de tomarla: el aviso se apaga hasta la siguiente toma.',
+      '«Desactivar aplicación» apaga los avisos por completo; «Activar aplicación» los enciende.',
+      'El volumen y el brillo se ajustan con los botones del teléfono o del ordenador.',
+      'La aplicación aparece sola 5 minutos antes de la toma y desaparece 5 segundos después de pulsar el botón verde. Se abre con el icono y se cierra con ✖.',
+      'El sonido se puede cambiar: voz, melodía o tono propio (Ajustes → Señal).'
+    ]
+  },
+  en: {
+    lead: 'Show before (min)', sound: 'Alert sound', sndVoice: 'Voice', sndMelody: 'Melody', sndRing: 'My ringtone', pickFile: 'Choose file…', tooBig: 'File is over 1 MB', done: 'Taken',
+    title: 'Pills', next: 'Next dose', in: 'in {t}', h: 'h', m: 'min', none: 'No times set',
+    off: 'App is turned off', settings: 'Settings', language: 'Language', times: 'Doses per day', dose: 'Dose',
+    theme: 'Theme', save: 'Save', saved: 'Saved', on: 'Turn app on', disable: 'Turn app off',
+    instruction: 'Instructions', close: 'Close', test: 'Test alert', cal: 'Export to calendar (.ics)',
+    soundGate: 'Tap the screen to allow sound', today: 'Taken today',
+    themes: { kids: 'Kids', women: 'Women', men: 'Men', nature: 'Green', night: 'Night' },
+    steps: [
+      'Open “Settings” and choose the language of the prompt and voice.',
+      'Choose how many times a day you take a pill (1 to 6) and set the time of each dose.',
+      'Pick a theme: kids, women, men, green or night.',
+      'Press “Save”. The app remembers your schedule.',
+      'At the set time a big green “Take your pill” button appears at the top and the app says the phrase aloud. It repeats until you press the button.',
+      'Press the big green button after taking the pill — the alert switches off until the next dose.',
+      '“Turn app off” stops all reminders completely, “Turn app on” starts them again.',
+      'Volume and brightness are set with your phone’s or computer’s own controls.',
+      'The app appears by itself 5 minutes before the dose and disappears 5 seconds after you press the green button. Open it with the icon, close it with the ✖ button.',
+      'The alert sound can be changed: voice, melody or your own ringtone (Settings → Alert sound).'
+    ]
+  },
+  de: {
+    lead: 'Anzeigen vorher (Min.)', sound: 'Signalton', sndVoice: 'Stimme', sndMelody: 'Melodie', sndRing: 'Eigener Klingelton', pickFile: 'Datei wählen…', tooBig: 'Datei größer als 1 MB', done: 'Genommen',
+    title: 'Tabletten', next: 'Nächste Einnahme', in: 'in {t}', h: 'Std', m: 'Min', none: 'Keine Zeit gesetzt',
+    off: 'App ist ausgeschaltet', settings: 'Einstellungen', language: 'Sprache', times: 'Einnahmen pro Tag', dose: 'Einnahme',
+    theme: 'Design', save: 'Speichern', saved: 'Gespeichert', on: 'App einschalten', disable: 'App ausschalten',
+    instruction: 'Anleitung', close: 'Schließen', test: 'Signal testen', cal: 'In Kalender exportieren (.ics)',
+    soundGate: 'Tippen Sie auf den Bildschirm, um Ton zu erlauben', today: 'Heute genommen',
+    themes: { kids: 'Kinder', women: 'Damen', men: 'Herren', nature: 'Grün', night: 'Nacht' },
+    steps: [
+      'Öffnen Sie „Einstellungen“ und wählen Sie die Sprache für Hinweis und Stimme.',
+      'Wählen Sie, wie oft am Tag Sie die Tablette nehmen (1 bis 6), und stellen Sie jede Uhrzeit ein.',
+      'Wählen Sie ein Design: Kinder, Damen, Herren, Grün oder Nacht.',
+      'Tippen Sie auf „Speichern“. Die App merkt sich den Plan.',
+      'Zur eingestellten Zeit erscheint oben ein großer grüner Knopf „Nehmen Sie Ihre Tablette“ und die App spricht den Satz. Er wird wiederholt, bis Sie den Knopf drücken.',
+      'Drücken Sie nach der Einnahme den großen grünen Knopf — das Signal ist bis zur nächsten Einnahme aus.',
+      '„App ausschalten“ stoppt alle Erinnerungen ganz, „App einschalten“ startet sie wieder.',
+      'Lautstärke und Helligkeit stellen Sie mit den Tasten Ihres Telefons oder Computers ein.',
+      'Die App erscheint 5 Minuten vor der Einnahme von selbst und verschwindet 5 Sekunden nach dem Druck auf den grünen Knopf. Öffnen mit dem Symbol, schließen mit ✖.',
+      'Der Signalton lässt sich ändern: Stimme, Melodie oder eigener Klingelton (Einstellungen → Signalton).'
+    ]
+  },
+  fr: {
+    lead: 'Afficher avant (min)', sound: 'Signal', sndVoice: 'Voix', sndMelody: 'Mélodie', sndRing: 'Sonnerie perso', pickFile: 'Choisir un fichier…', tooBig: 'Fichier de plus de 1 Mo', done: 'Pris',
+    title: 'Comprimés', next: 'Prochaine prise', in: 'dans {t}', h: 'h', m: 'min', none: 'Aucune heure définie',
+    off: 'Application désactivée', settings: 'Paramètres', language: 'Langue', times: 'Prises par jour', dose: 'Prise',
+    theme: 'Thème', save: 'Enregistrer', saved: 'Enregistré', on: 'Activer l’application', disable: 'Désactiver l’application',
+    instruction: 'Instructions', close: 'Fermer', test: 'Tester l’alerte', cal: 'Exporter vers le calendrier (.ics)',
+    soundGate: 'Touchez l’écran pour autoriser le son', today: 'Prises aujourd’hui',
+    themes: { kids: 'Enfant', women: 'Femme', men: 'Homme', nature: 'Vert', night: 'Nuit' },
+    steps: [
+      'Ouvrez « Paramètres » et choisissez la langue du message et de la voix.',
+      'Indiquez combien de fois par jour vous prenez un comprimé (de 1 à 6) et réglez l’heure de chaque prise.',
+      'Choisissez un thème : enfant, femme, homme, vert ou nuit.',
+      'Appuyez sur « Enregistrer ». L’application retient votre programme.',
+      'À l’heure choisie, un grand bouton vert « Prenez votre comprimé » apparaît en haut et l’application prononce la phrase. Elle se répète jusqu’à ce que vous appuyiez sur le bouton.',
+      'Appuyez sur le grand bouton vert après la prise : l’alerte s’éteint jusqu’à la prise suivante.',
+      '« Désactiver l’application » arrête complètement les rappels, « Activer l’application » les relance.',
+      'Le volume et la luminosité se règlent avec les touches de votre téléphone ou ordinateur.',
+      'L’application apparaît seule 5 minutes avant la prise et disparaît 5 secondes après l’appui sur le bouton vert. On l’ouvre avec l’icône et on la ferme avec ✖.',
+      'Le son peut être changé : voix, mélodie ou sonnerie perso (Paramètres → Signal).'
+    ]
+  },
+  pl: {
+    lead: 'Pokaż wcześniej (min)', sound: 'Sygnał', sndVoice: 'Głos', sndMelody: 'Melodia', sndRing: 'Własny dzwonek', pickFile: 'Wybierz plik…', tooBig: 'Plik większy niż 1 MB', done: 'Przyjęte',
+    title: 'Tabletki', next: 'Następna dawka', in: 'za {t}', h: 'godz.', m: 'min', none: 'Nie ustawiono godzin',
+    off: 'Aplikacja wyłączona', settings: 'Ustawienia', language: 'Język', times: 'Dawek dziennie', dose: 'Dawka',
+    theme: 'Motyw', save: 'Zapisz', saved: 'Zapisano', on: 'Włącz aplikację', disable: 'Wyłącz aplikację',
+    instruction: 'Instrukcja', close: 'Zamknij', test: 'Sprawdź sygnał', cal: 'Eksport do kalendarza (.ics)',
+    soundGate: 'Dotknij ekranu, aby włączyć dźwięk', today: 'Dziś przyjęte',
+    themes: { kids: 'Dziecięcy', women: 'Damski', men: 'Męski', nature: 'Zielony', night: 'Nocny' },
+    steps: [
+      'Otwórz „Ustawienia” i wybierz język komunikatu i głosu.',
+      'Wybierz, ile razy dziennie bierzesz tabletkę (od 1 do 6) i ustaw godzinę każdej dawki.',
+      'Wybierz motyw: dziecięcy, damski, męski, zielony lub nocny.',
+      'Naciśnij „Zapisz”. Aplikacja zapamięta harmonogram.',
+      'O wyznaczonej godzinie u góry pojawi się duży zielony przycisk „Weź tabletkę”, a aplikacja wypowie to zdanie. Powtarza się, dopóki nie naciśniesz przycisku.',
+      'Po przyjęciu tabletki naciśnij duży zielony przycisk — sygnał wyłączy się do następnej dawki.',
+      '„Wyłącz aplikację” całkowicie wyłącza przypomnienia, „Włącz aplikację” włącza je ponownie.',
+      'Głośność i jasność ustawia się przyciskami telefonu lub komputera.',
+      'Aplikacja pojawia się sama 5 minut przed dawką i znika 5 sekund po naciśnięciu zielonego przycisku. Otwiera ją ikona, zamyka przycisk ✖.',
+      'Dźwięk można zmienić: głos, melodia lub własny dzwonek (Ustawienia → Sygnał).'
+    ]
+  },
+  hy: {
+    lead: 'Ցուցադրել նախապես (րոպե)', sound: 'Ազդանշան', sndVoice: 'Ձայն', sndMelody: 'Մեղեդի', sndRing: 'Սեփական զանգ', pickFile: 'Ընտրել ֆայլ…', tooBig: 'Ֆայլը մեծ է 1 ՄԲ-ից', done: 'Ընդունված է',
+    title: 'Դեղահաբեր', next: 'Հաջորդ ընդունումը', in: '{t} հետո', h: 'ժ', m: 'ր', none: 'Ժամանակ սահմանված չէ',
+    off: 'Հավելվածն անջատված է', settings: 'Կարգավորումներ', language: 'Լեզու', times: 'Ընդունումներ օրական', dose: 'Ընդունում',
+    theme: 'Ձևավորում', save: 'Պահպանել', saved: 'Պահպանված է', on: 'Միացնել հավելվածը', disable: 'Անջատել հավելվածը',
+    instruction: 'Հրահանգ', close: 'Փակել', test: 'Ստուգել ազդանշանը', cal: 'Արտահանել օրացույց (.ics)',
+    soundGate: 'Հպեք էկրանին՝ ձայնը թույլատրելու համար', today: 'Այսօր ընդունված է',
+    themes: { kids: 'Մանկական', women: 'Կանացի', men: 'Տղամարդկանց', nature: 'Կանաչ', night: 'Գիշերային' },
+    steps: [
+      'Բացեք «Կարգավորումները» և ընտրեք հուշման ու ձայնի լեզուն։',
+      'Նշեք՝ օրական քանի անգամ եք դեղահաբ ընդունում (1-ից 6) և սահմանեք յուրաքանչյուր ընդունման ժամը։',
+      'Ընտրեք ձևավորումը՝ մանկական, կանացի, տղամարդկանց, կանաչ կամ գիշերային։',
+      'Սեղմեք «Պահպանել»։ Հավելվածը կհիշի ժամանակացույցը։',
+      'Սահմանված ժամին վերևում կհայտնվի մեծ կանաչ կոճակ «Խմեք հաբը», և հավելվածը կարտասանի այս արտահայտությունը։ Այն կկրկնվի, մինչև սեղմեք կոճակը։',
+      'Ընդունելուց հետո սեղմեք մեծ կանաչ կոճակը՝ ազդանշանն անջատվում է մինչև հաջորդ ընդունումը։',
+      '«Անջատել հավելվածը»-ը ամբողջովին անջատում է հիշեցումները, «Միացնել հավելվածը»-ը՝ նորից միացնում։',
+      'Ձայնի ուժգնությունն ու պայծառությունը կարգավորվում են հեռախոսի կամ համակարգչի սեփական կոճակներով։',
+      'Հավելվածն ինքնուրույն հայտնվում է ընդունումից 5 րոպե առաջ և անհետանում կանաչ կոճակը սեղմելուց 5 վայրկյան հետո։ Բացվում է պատկերակով, փակվում՝ ✖ կոճակով։',
+      'Ազդանշանը կարելի է փոխել՝ ձայն, մեղեդի կամ սեփական զանգ (Կարգավորումներ → Ազդանշան)։'
+    ]
+  },
+  ka: {
+    lead: 'ჩვენება წინასწარ (წთ)', sound: 'სიგნალი', sndVoice: 'ხმა', sndMelody: 'მელოდია', sndRing: 'საკუთარი რინგტონი', pickFile: 'ფაილის არჩევა…', tooBig: 'ფაილი 1 მბ-ზე დიდია', done: 'მიღებულია',
+    title: 'ტაბლეტები', next: 'შემდეგი მიღება', in: '{t}-ში', h: 'სთ', m: 'წთ', none: 'დრო არ არის დაყენებული',
+    off: 'აპლიკაცია გამორთულია', settings: 'პარამეტრები', language: 'ენა', times: 'მიღება დღეში', dose: 'მიღება',
+    theme: 'დიზაინი', save: 'შენახვა', saved: 'შენახულია', on: 'აპლიკაციის ჩართვა', disable: 'აპლიკაციის გამორთვა',
+    instruction: 'ინსტრუქცია', close: 'დახურვა', test: 'სიგნალის შემოწმება', cal: 'კალენდარში ექსპორტი (.ics)',
+    soundGate: 'შეეხეთ ეკრანს ხმის დასაშვებად', today: 'დღეს მიღებულია',
+    themes: { kids: 'საბავშვო', women: 'ქალის', men: 'კაცის', nature: 'მწვანე', night: 'ღამის' },
+    steps: [
+      'გახსენით „პარამეტრები“ და აირჩიეთ შეტყობინებისა და ხმის ენა.',
+      'მიუთითეთ, დღეში რამდენჯერ იღებთ ტაბლეტს (1-დან 6-მდე) და დააყენეთ თითოეული მიღების დრო.',
+      'აირჩიეთ დიზაინი: საბავშვო, ქალის, კაცის, მწვანე ან ღამის.',
+      'დააჭირეთ „შენახვას“. აპლიკაცია დაიმახსოვრებს განრიგს.',
+      'დათქმულ დროს ზემოთ გამოჩნდება დიდი მწვანე ღილაკი „მიიღეთ ტაბლეტი“ და აპლიკაცია წარმოთქვამს ამ ფრაზას. ის მეორდება, სანამ ღილაკს არ დააჭერთ.',
+      'მიღების შემდეგ დააჭირეთ დიდ მწვანე ღილაკს — სიგნალი გაითიშება შემდეგ მიღებამდე.',
+      '„აპლიკაციის გამორთვა“ სრულად თიშავს შეხსენებებს, „აპლიკაციის ჩართვა“ — ისევ რთავს.',
+      'ხმის სიძლიერე და სიკაშკაშე რეგულირდება ტელეფონის ან კომპიუტერის საკუთარი ღილაკებით.',
+      'აპლიკაცია თავად ჩნდება მიღებამდე 5 წუთით ადრე და ქრება მწვანე ღილაკზე დაჭერიდან 5 წამში. იხსნება ხატულათი, იხურება ✖ ღილაკით.',
+      'სიგნალის შეცვლა შესაძლებელია: ხმა, მელოდია ან საკუთარი რინგტონი (პარამეტრები → სიგნალი).'
+    ]
+  }
+};
+
+
+/* Дополнительные языки */
+LANGS.hi = { name: "हिन्दी", speech: "hi-IN", pill: "अपनी गोली लें" };
+I18N.hi = {"lead": "कितने मिनट पहले दिखाएँ", "sound": "ध्वनि", "sndVoice": "आवाज़", "sndMelody": "धुन", "sndRing": "अपनी रिंगटोन", "pickFile": "फ़ाइल चुनें…", "tooBig": "फ़ाइल 1 MB से बड़ी है", "done": "ले ली", "title": "गोलियाँ", "next": "अगली खुराक", "h": "घं", "m": "मिन", "none": "समय तय नहीं", "off": "ऐप बंद है", "settings": "सेटिंग", "language": "भाषा", "times": "दिन में कितनी बार", "dose": "खुराक", "theme": "थीम", "save": "सहेजें", "saved": "सहेजा गया", "on": "ऐप चालू करें", "disable": "ऐप बंद करें", "instruction": "निर्देश", "close": "बंद करें", "test": "ध्वनि जाँचें", "cal": "कैलेंडर में जोड़ें (.ics)", "soundGate": "ध्वनि के लिए स्क्रीन छुएँ", "today": "आज ली गई", "themes": {"kids": "बच्चों का", "women": "महिला", "men": "पुरुष", "nature": "हरा", "night": "रात"}, "steps": ["«सेटिंग» खोलें और भाषा चुनें।", "दिन में 1 से 6 बार खुराक चुनें और हर खुराक का समय तय करें।", "थीम चुनें: बच्चों का, महिला, पुरुष, हरा या रात।", "«सहेजें» दबाएँ। ऐप समय याद रखेगा।", "खुराक के समय बड़ा हरा बटन «अपनी गोली लें» दिखेगा और यह वाक्य बोला जाएगा। बटन दबाने तक संकेत दोहराया जाता है।", "गोली लेने के बाद बड़े हरे बटन को दबाएँ — अगली खुराक तक संकेत बंद हो जाएगा।", "«ऐप बंद करें» याद दिलाना पूरी तरह बंद करता है, «ऐप चालू करें» फिर चालू करता है।", "आवाज़ और चमक फ़ोन या कंप्यूटर के बटनों से बदलें।", "ऐप खुराक से कुछ मिनट पहले (सेटिंग में चुनें) अपने आप दिखता है और हरे बटन के 5 सेकंड बाद गायब हो जाता है। आइकन से खोलें, ✖ से बंद करें।", "ध्वनि बदली जा सकती है: आवाज़, धुन या अपनी रिंगटोन (सेटिंग → ध्वनि)।"], "in": "{t} में"};
+LANGS.ar = { name: "العربية (الإمارات)", speech: "ar-AE", pill: "تناول حبتك" };
+I18N.ar = {"lead": "العرض قبل الموعد (دقائق)", "sound": "التنبيه", "sndVoice": "صوت", "sndMelody": "لحن", "sndRing": "نغمة خاصة", "pickFile": "اختر ملفًا…", "tooBig": "الملف أكبر من 1 ميغابايت", "done": "تم", "title": "الحبوب", "next": "الجرعة التالية", "h": "س", "m": "د", "none": "لم يُحدَّد وقت", "off": "التطبيق متوقف", "settings": "الإعدادات", "language": "اللغة", "times": "عدد الجرعات يوميًا", "dose": "الجرعة", "theme": "المظهر", "save": "حفظ", "saved": "تم الحفظ", "on": "تشغيل التطبيق", "disable": "إيقاف التطبيق", "instruction": "التعليمات", "close": "إغلاق", "test": "تجربة التنبيه", "cal": "إضافة إلى التقويم (.ics)", "soundGate": "المس الشاشة لتفعيل الصوت", "today": "تم تناولها اليوم", "themes": {"kids": "أطفال", "women": "نسائي", "men": "رجالي", "nature": "أخضر", "night": "ليلي"}, "steps": ["افتح «الإعدادات» واختر اللغة.", "اختر عدد الجرعات يوميًا (من 1 إلى 6) وحدد وقت كل جرعة.", "اختر المظهر: أطفال أو نسائي أو رجالي أو أخضر أو ليلي.", "اضغط «حفظ». سيتذكر التطبيق الجدول.", "في وقت الجرعة يظهر زر أخضر كبير «تناول حبتك» وينطق التطبيق العبارة. يتكرر التنبيه حتى تضغط الزر.", "اضغط الزر الأخضر الكبير بعد تناول الحبة — يتوقف التنبيه حتى الجرعة التالية.", "«إيقاف التطبيق» يوقف التذكير تمامًا و«تشغيل التطبيق» يعيده.", "اضبط مستوى الصوت والسطوع من أزرار الهاتف أو الكمبيوتر.", "يظهر التطبيق تلقائيًا قبل الجرعة بعدد الدقائق المحدد في الإعدادات ويختفي بعد 5 ثوانٍ من ضغط الزر الأخضر. افتحه بالأيقونة وأغلقه بـ ✖.", "يمكن تغيير التنبيه: صوت أو لحن أو نغمة خاصة (الإعدادات ← التنبيه)."], "in": "بعد {t}"};
+LANGS.tr = { name: "Türkçe", speech: "tr-TR", pill: "İlacınızı alın" };
+I18N.tr = {"lead": "Kaç dakika önce gösterilsin", "sound": "Sinyal", "sndVoice": "Ses", "sndMelody": "Melodi", "sndRing": "Kendi zil sesim", "pickFile": "Dosya seç…", "tooBig": "Dosya 1 MB’tan büyük", "done": "Alındı", "title": "İlaçlar", "next": "Sonraki doz", "h": "sa", "m": "dk", "none": "Saat ayarlanmadı", "off": "Uygulama kapalı", "settings": "Ayarlar", "language": "Dil", "times": "Günlük doz sayısı", "dose": "Doz", "theme": "Tema", "save": "Kaydet", "saved": "Kaydedildi", "on": "Uygulamayı aç", "disable": "Uygulamayı kapat", "instruction": "Talimat", "close": "Kapat", "test": "Sinyali dene", "cal": "Takvime ekle (.ics)", "soundGate": "Sesi açmak için ekrana dokunun", "today": "Bugün alınan", "themes": {"kids": "Çocuk", "women": "Kadın", "men": "Erkek", "nature": "Yeşil", "night": "Gece"}, "steps": ["«Ayarlar»ı açın ve dili seçin.", "Günde kaç doz (1–6) alacağınızı seçin ve her doz için saat belirleyin.", "Temayı seçin: çocuk, kadın, erkek, yeşil veya gece.", "«Kaydet»e basın. Uygulama programı hatırlar.", "Doz saatinde büyük yeşil «İlacınızı alın» düğmesi çıkar ve cümle sesli söylenir. Düğmeye basana kadar sinyal tekrarlanır.", "İlacı aldıktan sonra büyük yeşil düğmeye basın — sinyal bir sonraki doza kadar susar.", "«Uygulamayı kapat» hatırlatmayı tamamen durdurur, «Uygulamayı aç» yeniden başlatır.", "Ses ve parlaklık telefon veya bilgisayar tuşlarıyla ayarlanır.", "Uygulama doz saatinden önce (Ayarlar’da seçilen dakika kadar) kendiliğinden çıkar, yeşil düğmeye bastıktan 5 saniye sonra kaybolur. Simgeyle açılır, ✖ ile kapanır.", "Sinyal değiştirilebilir: ses, melodi veya kendi zil sesiniz (Ayarlar → Sinyal)."], "in": "{t} sonra"};
+LANGS.fa = { name: "فارسی", speech: "fa-IR", pill: "قرص خود را بخورید" };
+I18N.fa = {"lead": "نمایش چند دقیقه قبل", "sound": "هشدار", "sndVoice": "صدا", "sndMelody": "آهنگ", "sndRing": "زنگ دلخواه", "pickFile": "انتخاب فایل…", "tooBig": "فایل بزرگ‌تر از ۱ مگابایت است", "done": "خورده شد", "title": "قرص‌ها", "next": "نوبت بعدی", "h": "ساعت", "m": "دقیقه", "none": "زمانی تنظیم نشده", "off": "برنامه خاموش است", "settings": "تنظیمات", "language": "زبان", "times": "تعداد دفعات در روز", "dose": "نوبت", "theme": "ظاهر", "save": "ذخیره", "saved": "ذخیره شد", "on": "روشن کردن برنامه", "disable": "خاموش کردن برنامه", "instruction": "راهنما", "close": "بستن", "test": "آزمایش هشدار", "cal": "افزودن به تقویم (.ics)", "soundGate": "برای فعال شدن صدا صفحه را لمس کنید", "today": "امروز خورده شده", "themes": {"kids": "کودکانه", "women": "زنانه", "men": "مردانه", "nature": "سبز", "night": "شب"}, "steps": ["«تنظیمات» را باز کنید و زبان را انتخاب کنید.", "تعداد دفعات مصرف در روز (۱ تا ۶) و زمان هر نوبت را تعیین کنید.", "ظاهر را انتخاب کنید: کودکانه، زنانه، مردانه، سبز یا شب.", "«ذخیره» را بزنید. برنامه زمان‌ها را به خاطر می‌سپارد.", "در زمان مصرف دکمهٔ بزرگ سبز «قرص خود را بخورید» ظاهر می‌شود و برنامه این جمله را می‌گوید. هشدار تا زدن دکمه تکرار می‌شود.", "پس از خوردن قرص دکمهٔ بزرگ سبز را بزنید — هشدار تا نوبت بعدی قطع می‌شود.", "«خاموش کردن برنامه» یادآوری را کاملاً متوقف می‌کند و «روشن کردن برنامه» دوباره فعال می‌کند.", "صدا و روشنایی را با دکمه‌های گوشی یا رایانه تنظیم کنید.", "برنامه به تعداد دقیقهٔ انتخابی در تنظیمات قبل از زمان مصرف خودکار ظاهر می‌شود و ۵ ثانیه پس از زدن دکمهٔ سبز ناپدید می‌شود. با نماد باز و با ✖ بسته می‌شود.", "هشدار قابل تغییر است: صدا، آهنگ یا زنگ دلخواه (تنظیمات ← هشدار)."], "in": "{t} دیگر"};
+LANGS.it = { name: "Italiano", speech: "it-IT", pill: "Prendi la compressa" };
+I18N.it = {"lead": "Mostra prima (minuti)", "sound": "Segnale", "sndVoice": "Voce", "sndMelody": "Melodia", "sndRing": "Suoneria personale", "pickFile": "Scegli file…", "tooBig": "File oltre 1 MB", "done": "Preso", "title": "Pastiglie", "next": "Prossima dose", "h": "h", "m": "min", "none": "Orario non impostato", "off": "App disattivata", "settings": "Impostazioni", "language": "Lingua", "times": "Dosi al giorno", "dose": "Dose", "theme": "Tema", "save": "Salva", "saved": "Salvato", "on": "Attiva app", "disable": "Disattiva app", "instruction": "Istruzioni", "close": "Chiudi", "test": "Prova segnale", "cal": "Aggiungi al calendario (.ics)", "soundGate": "Tocca lo schermo per attivare l’audio", "today": "Prese oggi", "themes": {"kids": "Bambini", "women": "Donna", "men": "Uomo", "nature": "Verde", "night": "Notte"}, "steps": ["Apri «Impostazioni» e scegli la lingua.", "Scegli quante dosi al giorno (da 1 a 6) e imposta l’orario di ciascuna.", "Scegli il tema: bambini, donna, uomo, verde o notte.", "Premi «Salva». L’app ricorda gli orari.", "All’ora della dose compare un grande pulsante verde «Prendi la compressa» e l’app pronuncia la frase. Il segnale si ripete finché non premi il pulsante.", "Dopo aver preso la compressa premi il grande pulsante verde: il segnale tace fino alla dose successiva.", "«Disattiva app» spegne del tutto i promemoria, «Attiva app» li riattiva.", "Volume e luminosità si regolano con i tasti del telefono o del computer.", "L’app compare da sola prima della dose (minuti a scelta nelle impostazioni) e sparisce 5 secondi dopo il pulsante verde. Si apre con l’icona, si chiude con ✖.", "Il segnale si può cambiare: voce, melodia o suoneria personale (Impostazioni → Segnale)."], "in": "tra {t}"};
+LANGS.sr = { name: "Српски", speech: "sr-RS", pill: "Попијте таблету" };
+I18N.sr = {"lead": "Приказати минута раније", "sound": "Сигнал", "sndVoice": "Глас", "sndMelody": "Мелодија", "sndRing": "Своја мелодија", "pickFile": "Изабери датотеку…", "tooBig": "Датотека је већа од 1 MB", "done": "Узето", "title": "Таблете", "next": "Следећа доза", "h": "ч", "m": "мин", "none": "Време није задато", "off": "Апликација је искључена", "settings": "Подешавања", "language": "Језик", "times": "Доза дневно", "dose": "Доза", "theme": "Тема", "save": "Сачувај", "saved": "Сачувано", "on": "Укључи апликацију", "disable": "Искључи апликацију", "instruction": "Упутство", "close": "Затвори", "test": "Провери сигнал", "cal": "Додај у календар (.ics)", "soundGate": "Додирните екран да омогућите звук", "today": "Данас узето", "themes": {"kids": "Дечија", "women": "Женска", "men": "Мушка", "nature": "Зелена", "night": "Ноћна"}, "steps": ["Отворите «Подешавања» и изаберите језик.", "Изаберите колико доза дневно (од 1 до 6) и подесите време сваке дозе.", "Изаберите тему: дечија, женска, мушка, зелена или ноћна.", "Притисните «Сачувај». Апликација памти распоред.", "У време дозе појављује се велико зелено дугме «Попијте таблету» и апликација изговара фразу. Сигнал се понавља док не притиснете дугме.", "Након узимања таблете притисните велико зелено дугме — сигнал ућуткује до следеће дозе.", "«Искључи апликацију» потпуно гаси подсетнике, «Укључи апликацију» их враћа.", "Јачина звука и осветљење подешавају се дугмадима телефона или рачунара.", "Апликација се сама појављује пре дозе (минути се бирају у подешавањима) и нестаје 5 секунди након зеленог дугмета. Отвара се иконом, затвара са ✖.", "Сигнал се може заменити: глас, мелодија или своја мелодија (Подешавања → Сигнал)."], "in": "за {t}"};
+LANGS.lt = { name: "Lietuvių", speech: "lt-LT", pill: "Išgerkite tabletę" };
+I18N.lt = {"lead": "Rodyti prieš (min.)", "sound": "Signalas", "sndVoice": "Balsas", "sndMelody": "Melodija", "sndRing": "Savas skambėjimas", "pickFile": "Pasirinkti failą…", "tooBig": "Failas didesnis nei 1 MB", "done": "Išgerta", "title": "Tabletės", "next": "Kitas vartojimas", "h": "val.", "m": "min.", "none": "Laikas nenustatytas", "off": "Programa išjungta", "settings": "Nustatymai", "language": "Kalba", "times": "Kartų per dieną", "dose": "Dozė", "theme": "Tema", "save": "Išsaugoti", "saved": "Išsaugota", "on": "Įjungti programą", "disable": "Išjungti programą", "instruction": "Instrukcija", "close": "Uždaryti", "test": "Išbandyti signalą", "cal": "Įtraukti į kalendorių (.ics)", "soundGate": "Palieskite ekraną, kad įjungtumėte garsą", "today": "Šiandien išgerta", "themes": {"kids": "Vaikų", "women": "Moterų", "men": "Vyrų", "nature": "Žalia", "night": "Naktis"}, "steps": ["Atidarykite «Nustatymai» ir pasirinkite kalbą.", "Pasirinkite, kiek kartų per dieną (nuo 1 iki 6) vartoti, ir nustatykite kiekvieno laiką.", "Pasirinkite temą: vaikų, moterų, vyrų, žalią ar naktinę.", "Paspauskite «Išsaugoti». Programa įsimins tvarkaraštį.", "Vartojimo metu atsiranda didelis žalias mygtukas «Išgerkite tabletę» ir programa ištaria frazę. Signalas kartojasi, kol paspausite mygtuką.", "Išgėrę tabletę paspauskite didelį žalią mygtuką — signalas nutyla iki kito vartojimo.", "«Išjungti programą» visiškai išjungia priminimus, «Įjungti programą» vėl įjungia.", "Garsas ir ryškumas reguliuojami telefono ar kompiuterio mygtukais.", "Programa pati atsiranda prieš vartojimą (minutės nustatomos nustatymuose) ir pradingsta praėjus 5 sekundėms po žalio mygtuko paspaudimo. Atidaroma piktograma, uždaroma ✖.", "Signalą galima pakeisti: balsas, melodija ar savas skambėjimas (Nustatymai → Signalas)."], "in": "po {t}"};
+LANGS.pt = { name: "Português", speech: "pt-BR", pill: "Tome o seu comprimido" };
+I18N.pt = {"lead": "Mostrar antes (min)", "sound": "Sinal", "sndVoice": "Voz", "sndMelody": "Melodia", "sndRing": "Toque próprio", "pickFile": "Escolher arquivo…", "tooBig": "Arquivo maior que 1 MB", "done": "Tomado", "title": "Comprimidos", "next": "Próxima dose", "h": "h", "m": "min", "none": "Horário não definido", "off": "Aplicativo desligado", "settings": "Configurações", "language": "Idioma", "times": "Doses por dia", "dose": "Dose", "theme": "Tema", "save": "Salvar", "saved": "Salvo", "on": "Ligar aplicativo", "disable": "Desligar aplicativo", "instruction": "Instruções", "close": "Fechar", "test": "Testar sinal", "cal": "Adicionar ao calendário (.ics)", "soundGate": "Toque na tela para ativar o som", "today": "Tomados hoje", "themes": {"kids": "Infantil", "women": "Feminino", "men": "Masculino", "nature": "Verde", "night": "Noturno"}, "steps": ["Abra «Configurações» e escolha o idioma.", "Escolha quantas doses por dia (de 1 a 6) e defina o horário de cada uma.", "Escolha o tema: infantil, feminino, masculino, verde ou noturno.", "Toque em «Salvar». O aplicativo guarda os horários.", "No horário da dose aparece um grande botão verde «Tome o seu comprimido» e o aplicativo diz a frase. O sinal se repete até você tocar no botão.", "Depois de tomar o comprimido, toque no grande botão verde — o sinal para até a próxima dose.", "«Desligar aplicativo» desativa os lembretes por completo, «Ligar aplicativo» os reativa.", "Volume e brilho são ajustados pelos botões do telefone ou computador.", "O aplicativo aparece sozinho antes da dose (minutos definidos nas configurações) e some 5 segundos após o botão verde. Abre-se pelo ícone, fecha-se com ✖.", "O sinal pode ser trocado: voz, melodia ou toque próprio (Configurações → Sinal)."], "in": "em {t}"};
+LANGS.ja = { name: "日本語", speech: "ja-JP", pill: "薬を飲んでください" };
+I18N.ja = {"lead": "何分前に表示", "sound": "通知音", "sndVoice": "音声", "sndMelody": "メロディ", "sndRing": "自分の着信音", "pickFile": "ファイルを選択…", "tooBig": "ファイルが1MBを超えています", "done": "服用済み", "title": "お薬", "next": "次の服用", "h": "時間", "m": "分", "none": "時刻未設定", "off": "アプリはオフです", "settings": "設定", "language": "言語", "times": "1日の回数", "dose": "第", "theme": "テーマ", "save": "保存", "saved": "保存しました", "on": "アプリをオン", "disable": "アプリをオフ", "instruction": "使い方", "close": "閉じる", "test": "通知音テスト", "cal": "カレンダーに追加 (.ics)", "soundGate": "音を出すため画面をタップ", "today": "今日の服用済み", "themes": {"kids": "こども", "women": "女性", "men": "男性", "nature": "グリーン", "night": "ナイト"}, "steps": ["「設定」を開き、言語を選びます。", "1日の服用回数（1〜6回）を選び、各回の時刻を設定します。", "テーマを選びます：こども、女性、男性、グリーン、ナイト。", "「保存」を押します。スケジュールが記憶されます。", "服用時刻に大きな緑のボタン「薬を飲んでください」が現れ、音声で知らせます。ボタンを押すまで繰り返されます。", "服用したら大きな緑のボタンを押すと、次の服用時刻まで通知が止まります。", "「アプリをオフ」で通知を完全に停止し、「アプリをオン」で再開します。", "音量と明るさは本体のボタンで調整します。", "アプリは服用の数分前（設定で選択）に自動表示され、緑のボタンを押して5秒後に消えます。アイコンで開き、✖で閉じます。", "通知音は音声・メロディ・自分の着信音から選べます（設定→通知音）。"], "in": "あと{t}"};
+LANGS.id = { name: "Bahasa Indonesia", speech: "id-ID", pill: "Minum pil Anda" };
+I18N.id = {"lead": "Tampilkan sebelum (menit)", "sound": "Sinyal", "sndVoice": "Suara", "sndMelody": "Melodi", "sndRing": "Nada dering sendiri", "pickFile": "Pilih berkas…", "tooBig": "Berkas lebih dari 1 MB", "done": "Sudah diminum", "title": "Pil", "next": "Dosis berikutnya", "h": "j", "m": "mnt", "none": "Waktu belum diatur", "off": "Aplikasi nonaktif", "settings": "Pengaturan", "language": "Bahasa", "times": "Dosis per hari", "dose": "Dosis", "theme": "Tema", "save": "Simpan", "saved": "Tersimpan", "on": "Aktifkan aplikasi", "disable": "Nonaktifkan aplikasi", "instruction": "Petunjuk", "close": "Tutup", "test": "Uji sinyal", "cal": "Tambah ke kalender (.ics)", "soundGate": "Sentuh layar untuk mengaktifkan suara", "today": "Diminum hari ini", "themes": {"kids": "Anak", "women": "Wanita", "men": "Pria", "nature": "Hijau", "night": "Malam"}, "steps": ["Buka «Pengaturan» dan pilih bahasa.", "Pilih jumlah dosis per hari (1 sampai 6) dan atur waktu tiap dosis.", "Pilih tema: anak, wanita, pria, hijau, atau malam.", "Tekan «Simpan». Aplikasi mengingat jadwalnya.", "Pada waktu dosis muncul tombol hijau besar «Minum pil Anda» dan aplikasi mengucapkan kalimat itu. Sinyal berulang sampai Anda menekan tombol.", "Setelah minum pil, tekan tombol hijau besar — sinyal berhenti sampai dosis berikutnya.", "«Nonaktifkan aplikasi» mematikan pengingat sepenuhnya, «Aktifkan aplikasi» menyalakannya lagi.", "Volume dan kecerahan diatur dengan tombol ponsel atau komputer.", "Aplikasi muncul otomatis sebelum dosis (menit diatur di pengaturan) dan hilang 5 detik setelah tombol hijau ditekan. Buka lewat ikon, tutup dengan ✖.", "Sinyal dapat diganti: suara, melodi, atau nada dering sendiri (Pengaturan → Sinyal)."], "in": "dalam {t}"};
+LANGS.uk = { name: "Українська", speech: "uk-UA", pill: "Прийміть таблетку" };
+I18N.uk = {"lead": "Показувати за (хв до прийому)", "sound": "Сигнал", "sndVoice": "Голос", "sndMelody": "Мелодія", "sndRing": "Свій рингтон", "pickFile": "Вибрати файл…", "tooBig": "Файл більший за 1 МБ", "done": "Прийнято", "title": "Таблетки", "next": "Наступний прийом", "h": "год", "m": "хв", "none": "Час не задано", "off": "Застосунок вимкнено", "settings": "Налаштування", "language": "Мова", "times": "Прийомів на день", "dose": "Прийом", "theme": "Оформлення", "save": "Зберегти", "saved": "Збережено", "on": "Увімкнути застосунок", "disable": "Вимкнути застосунок", "instruction": "Інструкція", "close": "Закрити", "test": "Перевірити сигнал", "cal": "Нагадування в календар (.ics)", "soundGate": "Торкніться екрана, щоб дозволити звук", "today": "Сьогодні прийнято", "themes": {"kids": "Дитяче", "women": "Жіноче", "men": "Чоловіче", "nature": "Зелене", "night": "Нічне"}, "steps": ["Відкрийте «Налаштування» та оберіть мову.", "Вкажіть, скільки разів на день приймати таблетку (від 1 до 6), і задайте час кожного прийому.", "Оберіть оформлення: дитяче, жіноче, чоловіче, зелене або нічне.", "Натисніть «Зберегти». Застосунок запам’ятає розклад.", "У потрібний час з’явиться велика зелена кнопка «Прийміть таблетку», і застосунок вимовить цю фразу. Сигнал повторюється, доки не натиснете кнопку.", "Натисніть велику зелену кнопку після прийому — сигнал вимкнеться до наступного прийому.", "«Вимкнути застосунок» повністю вимикає нагадування, «Увімкнути застосунок» вмикає знову.", "Гучність і яскравість налаштовуються кнопками телефона чи комп’ютера.", "Застосунок сам з’являється перед прийомом (хвилини обираються в налаштуваннях) і зникає через 5 секунд після натискання зеленої кнопки. Відкрити — значком, закрити — кнопкою ✖.", "Сигнал можна замінити: голос, мелодія або власний рингтон (Налаштування → Сигнал)."], "in": "через {t}"};
+LANG_ORDER.push("hi","ar","tr","fa","it","sr","lt","pt","ja","id","uk");
+const RTL_LANGS = ['ar', 'fa'];
+LANGS.bg = {"name": "Български", "speech": "bg-BG", "pill": "Вземете таблетката"};
+I18N.bg = {"lead": "Показване преди (мин)", "sound": "Сигнал", "sndVoice": "Глас", "sndMelody": "Мелодия", "sndRing": "Собствен рингтон", "pickFile": "Избор на файл…", "tooBig": "Файлът е над 1 MB", "done": "Взето", "title": "Таблетки", "next": "Следващ прием", "in": "след {t}", "h": "ч", "m": "мин", "none": "Не е зададено време", "off": "Приложението е изключено", "settings": "Настройки", "language": "Език", "times": "Приема на ден", "dose": "Прием", "theme": "Оформление", "save": "Запази", "saved": "Запазено", "on": "Включи приложението", "disable": "Изключи приложението", "instruction": "Инструкция", "close": "Затвори", "test": "Провери сигнала", "cal": "Добави в календара (.ics)", "soundGate": "Докоснете екрана, за да разрешите звука", "today": "Взети днес", "themes": {"kids": "Детско", "women": "Женско", "men": "Мъжко", "nature": "Зелено", "night": "Нощно"}, "steps": ["Отворете «Настройки» и изберете език.", "Изберете колко пъти на ден (от 1 до 6) се приема таблетка и задайте часа на всеки прием.", "Изберете оформление: детско, женско, мъжко, зелено или нощно.", "Натиснете «Запази». Приложението запомня графика.", "В часа на приема се появява голям зелен бутон «Вземете таблетката» и приложението произнася фразата. Сигналът се повтаря, докато не натиснете бутона.", "След приема натиснете големия зелен бутон — сигналът замлъква до следващия прием.", "«Изключи приложението» спира напомнянията напълно, «Включи приложението» ги връща.", "Силата на звука и яркостта се нагласят с бутоните на телефона или компютъра.", "Приложението се появява само преди приема (минутите се избират в настройките) и изчезва 5 секунди след зеления бутон. Отваря се с иконата, затваря се с ✖.", "Сигналът може да се смени: глас, мелодия или собствен рингтон (Настройки → Сигнал)."]};
+LANG_ORDER.push('bg');
+LANGS.ro = {"name": "Română", "speech": "ro-RO", "pill": "Luați pastila"};
+I18N.ro = {"lead": "Afișare înainte (min)", "sound": "Semnal", "sndVoice": "Voce", "sndMelody": "Melodie", "sndRing": "Ton propriu", "pickFile": "Alege fișier…", "tooBig": "Fișier peste 1 MB", "done": "Luat", "title": "Pastile", "next": "Următoarea doză", "in": "peste {t}", "h": "h", "m": "min", "none": "Ora nu este setată", "off": "Aplicația este oprită", "settings": "Setări", "language": "Limba", "times": "Doze pe zi", "dose": "Doza", "theme": "Temă", "save": "Salvează", "saved": "Salvat", "on": "Pornește aplicația", "disable": "Oprește aplicația", "instruction": "Instrucțiuni", "close": "Închide", "test": "Testează semnalul", "cal": "Adaugă în calendar (.ics)", "soundGate": "Atingeți ecranul pentru a activa sunetul", "today": "Luate astăzi", "themes": {"kids": "Copii", "women": "Femei", "men": "Bărbați", "nature": "Verde", "night": "Noapte"}, "steps": ["Deschideți «Setări» și alegeți limba.", "Alegeți câte doze pe zi (de la 1 la 6) și setați ora fiecăreia.", "Alegeți tema: copii, femei, bărbați, verde sau noapte.", "Apăsați «Salvează». Aplicația reține programul.", "La ora dozei apare un buton verde mare «Luați pastila» și aplicația rostește fraza. Semnalul se repetă până apăsați butonul.", "După ce ați luat pastila, apăsați butonul verde mare — semnalul tace până la următoarea doză.", "«Oprește aplicația» dezactivează complet memento-urile, «Pornește aplicația» le reactivează.", "Volumul și luminozitatea se reglează cu butoanele telefonului sau ale computerului.", "Aplicația apare singură înainte de doză (minutele se aleg în setări) și dispare la 5 secunde după butonul verde. Se deschide cu pictograma, se închide cu ✖.", "Semnalul poate fi schimbat: voce, melodie sau ton propriu (Setări → Semnal)."]};
+LANG_ORDER.push('ro');
+
+const THEMES = {
+  kids:   { bg: '#fff3b0', bg2: '#ffd6e8', panel: '#ffffff', text: '#3a2a6a', sub: '#7a6aaa', accent: '#ff6fb1', accent2: '#4fc3ff', radius: '26px', font: '"Comic Sans MS","Trebuchet MS",system-ui,sans-serif', chip: '#ffe27a' },
+  women:  { bg: '#fde8f1', bg2: '#e8d9ff', panel: '#fffafc', text: '#5a2a50', sub: '#9a6a92', accent: '#d9569a', accent2: '#a77bd8', radius: '20px', font: 'Georgia,"Segoe UI",system-ui,serif', chip: '#f6c7de' },
+  men:    { bg: '#1e2a3a', bg2: '#2e3f55', panel: '#ecf1f7', text: '#1b2735', sub: '#566a82', accent: '#2f6fb5', accent2: '#4a5d73', radius: '10px', font: '"Segoe UI",Roboto,system-ui,sans-serif', chip: '#cfdae8' },
+  nature: { bg: '#e3f8e6', bg2: '#c6efd0', panel: '#ffffff', text: '#1d4a2a', sub: '#4f8a60', accent: '#1fae5b', accent2: '#7fd49a', radius: '16px', font: '"Segoe UI",Roboto,system-ui,sans-serif', chip: '#bfeacb' },
+  night:  { bg: '#10141f', bg2: '#1b2236', panel: '#252d44', text: '#e8edf8', sub: '#93a0c0', accent: '#6c8cff', accent2: '#4a5a8a', radius: '16px', font: '"Segoe UI",Roboto,system-ui,sans-serif', chip: '#34406a' }
+};
+const THEME_ORDER = ['kids', 'women', 'men', 'nature', 'night'];
+</script>
+<script>const CREDIT_LOGO = 'data:image/png;base64,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';
+/* Общий код: расписание, оформление, интерфейс. Работает и в PWA (Android), и в расширении (popup / окно сигнала). */
+const pad2 = (n) => String(n).padStart(2, '0');
+const dayKey = (d) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const LEAD_OPTS = [1, 2, 3, 5, 10, 15, 20, 30];
+const leadMs = (s) => (s && s.lead ? s.lead : 5) * 60e3;   // за сколько минут до приёма появляется приложение (по умолчанию 5)
+const REPEAT_BEFORE = 25000, REPEAT_AFTER = 5000;           // повтор сигнала: до приёма / после приёма
+const PRESETS = {
+  1: ['09:00'], 2: ['08:00', '20:00'], 3: ['08:00', '14:00', '20:00'], 4: ['08:00', '12:00', '16:00', '20:00'],
+  5: ['07:00', '10:00', '13:00', '16:00', '19:00'], 6: ['07:00', '10:00', '13:00', '16:00', '19:00', '22:00']
+};
+function defaultState() { return { enabled: true, lead: 5, lang: 'ru', theme: 'nature', count: 3, times: PRESETS[3].slice(), sound: 'voice', melody: 1, ringtone: null, ringName: '', taken: {}, active: null }; }
+function normState(s) {
+  const d = defaultState(); s = Object.assign(d, s || {});
+  if (!LANGS[s.lang]) s.lang = 'ru';
+  s.lead = LEAD_OPTS.includes(s.lead | 0) ? s.lead | 0 : 5;
+  if (!THEMES[s.theme]) s.theme = 'nature';
+  if (!['voice', 'melody', 'ringtone'].includes(s.sound)) s.sound = 'voice';
+  if (s.sound === 'ringtone' && !s.ringtone) s.sound = 'voice';
+  s.melody = Math.min(3, Math.max(1, s.melody | 0 || 1));
+  s.count = Math.min(6, Math.max(1, s.count | 0 || 3));
+  const t = (s.times || []).slice(0, s.count);
+  while (t.length < s.count) t.push(PRESETS[s.count][t.length] || '12:00');
+  s.times = t.map((x) => (/^\d\d:\d\d$/.test(x) ? x : '12:00'));
+  const keep = {}, today = new Date();
+  for (let i = -1; i < 3; i++) { const k = dayKey(new Date(today.getTime() - i * 864e5)); if (s.taken && s.taken[k]) keep[k] = s.taken[k]; }
+  s.taken = keep; return s;
+}
+const sortedTimes = (s) => s.times.slice().sort();
+function atTime(base, hhmm, addDays) { const [h, m] = hhmm.split(':').map(Number); return new Date(base.getFullYear(), base.getMonth(), base.getDate() + (addDays || 0), h, m, 0, 0); }
+function nextDose(s, now) {
+  const ts = sortedTimes(s);
+  for (const dd of [0, 1]) for (const t of ts) { const d = atTime(now, t, dd); if (d > now) return { at: d, time: t }; }
+  return null;
+}
+/* Приём «наступил», если до него осталось ≤ 5 минут и прошло ≤ 60 минут, и он ещё не отмечен */
+function dueDose(s, now) {
+  let best = null;
+  for (const dd of [0, 1]) for (const t of sortedTimes(s)) {
+    const d = atTime(now, t, dd), tk = s.taken[dayKey(d)] || {};
+    if (d.getTime() - leadMs(s) <= now && now - d <= 3600e3 && !tk[t] && (!best || d < best.at)) best = { time: t, at: d };
+  }
+  return best;
+}
+const ringEvery = (a, now) => (a && a.time !== 'test' && (now || Date.now()) < a.at ? REPEAT_BEFORE : REPEAT_AFTER);
+const isRinging = (a, now) => !a || a.time === 'test' || (now || Date.now()) >= a.at;
+function markTaken(s, now) {
+  for (const dd of [0, 1]) for (const t of s.times) {
+    const d = atTime(now, t, dd);
+    if (d.getTime() - leadMs(s) <= now && now - d <= 3600e3) { const k = dayKey(d); s.taken[k] = s.taken[k] || {}; s.taken[k][t] = true; }
+  }
+  s.active = null;
+}
+function fmtIn(I, ms) { const mins = Math.max(1, Math.round(ms / 60000)), h = Math.floor(mins / 60), m = mins % 60; return I.in.replace('{t}', (h ? h + ' ' + I.h + ' ' : '') + m + ' ' + I.m); }
+function icsText(s) {
+  const L = LANGS[s.lang], now = new Date(), ymd = now.getFullYear() + pad2(now.getMonth() + 1) + pad2(now.getDate());
+  const ev = sortedTimes(s).map((t, i) => ['BEGIN:VEVENT', 'UID:pill-' + i + '-' + t.replace(':', '') + '@pillreminder', 'DTSTAMP:' + ymd + 'T000000Z', 'DTSTART:' + ymd + 'T' + t.replace(':', '') + '00', 'DTEND:' + ymd + 'T' + t.replace(':', '') + '00', 'RRULE:FREQ=DAILY', 'SUMMARY:' + L.pill, 'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + L.pill, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT'].join('\r\n'));
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PillReminder//EN', ...ev, 'END:VCALENDAR'].join('\r\n');
+}
+function applyTheme(name) {
+  const T = THEMES[name] || THEMES.nature, r = document.documentElement.style;
+  r.setProperty('--bg', T.bg); r.setProperty('--bg2', T.bg2); r.setProperty('--panel', T.panel); r.setProperty('--text', T.text); r.setProperty('--sub', T.sub);
+  r.setProperty('--accent', T.accent); r.setProperty('--accent2', T.accent2); r.setProperty('--radius', T.radius); r.setProperty('--font', T.font); r.setProperty('--chip', T.chip);
+  document.body.dataset.theme = name;
+}
+/* 1 см экрана в CSS-пикселях: Android-браузер считает 1 CSS px = 1/160 дюйма, компьютер — 1/96 */
+const CM_PX = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 63 : 37.8;
+const CROSS = '<svg class="cross" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 1.5h6v7.5h7.5v6H15v7.5H9V15H1.5V9H9z" fill="#1fae5b" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/><path d="M10.2 3h3.6v7.2H21v3.6h-7.2V21h-3.6v-7.2H3v-3.6h7.2z" fill="#37d273" opacity=".55"/></svg>';
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const GLOBE = '<svg class="globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#2b8cff" stroke="#fff" stroke-width="1.2"/><path d="M5 8c2-1 3-3 6-3 1 2-1 3 0 4s3 0 3 2-2 2-2 4-2 2-3 1-1-3-3-4-2-3-1-4zM15 5c2 0 4 1 5 3-2 0-3 1-4 0s-1-2-1-3zM14 16c2-1 4 0 5 1-1 2-3 3-5 3 0-2 0-3 0-4z" fill="#3fd06a"/><ellipse cx="12" cy="12" rx="4.6" ry="10" fill="none" stroke="#fff" stroke-width=".8" opacity=".7"/><path d="M2.5 12h19M4 7h16M4 17h16" stroke="#fff" stroke-width=".7" opacity=".6" fill="none"/></svg>';
+const ICON_GEAR = '<svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3.2" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#fff" stroke-width="2.2"/></svg>';
+const ICON_HELP = '<svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M9.2 9.3a2.9 2.9 0 115 1.9c-.8.8-1.6 1.2-1.6 2.4" stroke="#2b8cff" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="12.6" cy="17" r="1.3" fill="#2b8cff"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg>';
+function flagSvg(k) {
+  const o = '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true">', e = '<rect x=".5" y=".5" width="29" height="19" rx="2.5" fill="none" stroke="rgba(0,0,0,.35)"/></svg>', R = (x, y, w, h, f) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + f + '"/>';
+  const clip = '<clipPath id="fc' + k + '"><rect width="30" height="20" rx="2.5"/></clipPath><g clip-path="url(#fc' + k + ')">';
+  let b = '';
+  if (k === 'ru') b = R(0, 0, 30, 6.7, '#fff') + R(0, 6.7, 30, 6.7, '#1c57a5') + R(0, 13.4, 30, 6.6, '#d52b1e');
+  else if (k === 'zh') b = R(0, 0, 30, 20, '#de2910') + '<polygon points="6,3 7.2,6.4 10.8,6.4 7.9,8.5 9,12 6,9.9 3,12 4.1,8.5 1.2,6.4 4.8,6.4" fill="#ffde00"/><circle cx="12" cy="3.5" r=".9" fill="#ffde00"/><circle cx="14" cy="6" r=".9" fill="#ffde00"/><circle cx="14" cy="9" r=".9" fill="#ffde00"/><circle cx="12" cy="11.5" r=".9" fill="#ffde00"/>';
+  else if (k === 'es') b = R(0, 0, 30, 20, '#c60b1e') + R(0, 5, 30, 10, '#ffc400');
+  else if (k === 'en') b = R(0, 0, 30, 20, '#012169') + '<path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.6"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="6"/><path d="M15 0V20M0 10H30" stroke="#c8102e" stroke-width="3.4"/>';
+  else if (k === 'de') b = R(0, 0, 30, 6.7, '#111') + R(0, 6.7, 30, 6.7, '#dd0000') + R(0, 13.4, 30, 6.6, '#ffce00');
+  else if (k === 'fr') b = R(0, 0, 10, 20, '#0055a4') + R(10, 0, 10, 20, '#fff') + R(20, 0, 10, 20, '#ef4135');
+  else if (k === 'pl') b = R(0, 0, 30, 10, '#fff') + R(0, 10, 30, 10, '#dc143c');
+  else if (k === 'hy') b = R(0, 0, 30, 6.7, '#d90012') + R(0, 6.7, 30, 6.7, '#0033a0') + R(0, 13.4, 30, 6.6, '#f2a800');
+  else if (k === 'ka') b = R(0, 0, 30, 20, '#fff') + R(13, 0, 4, 20, '#e8112d') + R(0, 8, 30, 4, '#e8112d') + [[6.5, 4], [23.5, 4], [6.5, 16], [23.5, 16]].map((p) => '<path d="M' + (p[0] - 2) + ' ' + p[1] + 'h4M' + p[0] + ' ' + (p[1] - 2) + 'v4" stroke="#e8112d" stroke-width="1.6"/>').join('');
+  else if (k === 'hi') b = R(0, 0, 30, 6.7, '#ff9933') + R(0, 6.7, 30, 6.7, '#fff') + R(0, 13.4, 30, 6.6, '#138808') + '<circle cx="15" cy="10" r="2.6" fill="none" stroke="#000080" stroke-width=".8"/>';
+  else if (k === 'ar') b = R(0, 0, 30, 6.7, '#00732f') + R(0, 6.7, 30, 6.7, '#fff') + R(0, 13.4, 30, 6.6, '#000') + R(0, 0, 8, 20, '#ff0000');
+  else if (k === 'tr') b = R(0, 0, 30, 20, '#e30a17') + '<circle cx="11" cy="10" r="5" fill="#fff"/><circle cx="12.4" cy="10" r="4" fill="#e30a17"/><polygon points="17,10 14.7,10.8 16.1,12.8 15.9,10.4 18,8.9 15.9,9.6 14.7,7.5 14.9,9.6" fill="#fff"/>';
+  else if (k === 'fa') b = R(0, 0, 30, 6.7, '#239f40') + R(0, 6.7, 30, 6.7, '#fff') + R(0, 13.4, 30, 6.6, '#da0000') + '<circle cx="15" cy="10" r="1.6" fill="none" stroke="#da0000" stroke-width=".8"/>';
+  else if (k === 'it') b = R(0, 0, 10, 20, '#009246') + R(10, 0, 10, 20, '#fff') + R(20, 0, 10, 20, '#ce2b37');
+  else if (k === 'sr') b = R(0, 0, 30, 6.7, '#c6363c') + R(0, 6.7, 30, 6.7, '#0c4076') + R(0, 13.4, 30, 6.6, '#fff');
+  else if (k === 'lt') b = R(0, 0, 30, 6.7, '#fdb913') + R(0, 6.7, 30, 6.7, '#006a44') + R(0, 13.4, 30, 6.6, '#c1272d');
+  else if (k === 'pt') b = R(0, 0, 12, 20, '#006600') + R(12, 0, 18, 20, '#ff0000') + '<circle cx="12" cy="10" r="4" fill="#ffcc00"/><circle cx="12" cy="10" r="2.2" fill="#fff" stroke="#003399" stroke-width=".8"/>';
+  else if (k === 'ja') b = R(0, 0, 30, 20, '#fff') + '<circle cx="15" cy="10" r="5.4" fill="#bc002d"/>';
+  else if (k === 'id') b = R(0, 0, 30, 10, '#ff0000') + R(0, 10, 30, 10, '#fff');
+  else if (k === 'bg') b = R(0, 0, 30, 6.7, '#fff') + R(0, 6.7, 30, 6.7, '#00966e') + R(0, 13.4, 30, 6.6, '#d62612');
+  else if (k === 'ro') b = R(0, 0, 10, 20, '#002b7f') + R(10, 0, 10, 20, '#fcd116') + R(20, 0, 10, 20, '#ce1126');
+  else if (k === 'uk') b = R(0, 0, 30, 10, '#0057b7') + R(0, 10, 30, 10, '#ffd700');
+  return o + clip + b + '</g>' + e;
+}
+
+const APP_CSS = `
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;font-family:var(--font);color:var(--text);background:linear-gradient(160deg,var(--bg),var(--bg2));overflow:hidden}
+body[data-theme=kids]{background:radial-gradient(circle at 20% 20%,#fff,transparent 30%),linear-gradient(160deg,var(--bg),var(--bg2))}
+button{font:inherit;color:inherit;cursor:pointer;border:0}
+.ic{width:1.1em;height:1.1em;display:block}
+.flag{width:1.5em;height:1em;flex:none;border-radius:3px}
+.globe{width:1.1em;height:1.1em;flex:none}
+.cross{width:2em;height:2em;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
+/* ===== приложение: не больше 6 x 4 см ===== */
+.app{width:calc(6 * var(--cm));height:calc(4 * var(--cm));max-width:100vw;font-size:calc(var(--cm) * .3);background:var(--panel);border-radius:var(--radius);box-shadow:0 6px 22px rgba(0,0,0,.28);padding:.45em;display:flex;flex-direction:column;gap:.35em;overflow:hidden}
+.skhead{display:flex;align-items:center;gap:.3em;border-bottom:.12em solid var(--chip);padding-bottom:.3em}
+.skhead .sp{flex:1}
+.sq{width:2.1em;height:1.8em;border-radius:.5em;background:var(--accent);display:flex;align-items:center;justify-content:center;padding:0;gap:.15em;box-shadow:0 .1em 0 rgba(0,0,0,.18);font-size:1em}
+.sq.lg{width:3em;background:var(--accent2)}
+.sq.hp{background:#2b8cff}
+.sq.cl{background:#e24b4b}
+.sq .flag{width:1em;height:.7em}.sq .globe{width:.9em;height:.9em}
+.skmain{flex:1;min-height:0;border:.14em solid var(--chip);border-radius:.7em;padding:.3em;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.2}
+.status{font-size:.9em}
+.status b{font-size:1.4em}
+.done{font-size:1.3em;font-weight:800;color:#1fae5b}
+.skfoot{display:flex;gap:.35em}
+.skfoot .btn{flex:1;font-size:.72em;padding:.25em .2em;line-height:1.1;min-height:2.3em;border-radius:.6em}
+.btn{background:var(--chip);border-radius:.6em;padding:.5em .8em;font-size:1em;font-weight:600}
+.btn.pri{background:var(--accent);color:#fff}
+.btn.off{background:#e24b4b;color:#fff}
+.btn.on{background:#1fae5b;color:#fff}
+.btn.faded{opacity:.38}
+/* большая зелёная кнопка внутри приложения */
+.bigwrap{width:100%;height:100%}
+.big{width:100%;height:100%;border-radius:.8em;background:linear-gradient(180deg,#38dd78,#13a346);color:#fff;font-size:1.25em;font-weight:800;text-shadow:0 2px 4px rgba(0,0,0,.35);box-shadow:0 3px 10px rgba(0,120,50,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1em;animation:pulse2 1.2s ease-in-out infinite;padding:.2em;line-height:1.05;word-break:break-word}
+.big .cross{width:1.4em;height:1.4em}
+.big small{font-size:.5em;font-weight:600;opacity:.95}
+@keyframes wave{50%{opacity:.35}}
+.big .snd{font-size:.6em;animation:wave .8s ease-in-out infinite;text-shadow:none}
+@keyframes pulse2{50%{transform:scale(1.03)}}
+/* ===== PWA: расположение ===== */
+body.pwa .dockwrap{position:fixed;left:0;right:0;display:flex;justify-content:center;z-index:5}
+body.pwa .dockwrap.bottom{bottom:8px}
+body.pwa .dockwrap.top{top:8px}
+body.pwa .dim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:4}
+body.pwa .welcome{position:fixed;left:16px;right:16px;top:14vh;text-align:center;opacity:.55}
+body.pwa .welcome .cross{width:72px;height:72px}
+body.pwa .fab{position:fixed;right:14px;bottom:14px;width:60px;height:60px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:6;padding:0}
+body.pwa .fab .cross{width:38px;height:38px}
+.gate{position:fixed;left:0;right:0;bottom:0;padding:10px;text-align:center;background:#ffd23f;color:#432;font-weight:700;z-index:20;font-size:14px}
+.toast{position:fixed;left:50%;bottom:30vh;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:18px;font-size:14px;z-index:30}
+/* ===== Оверлеи и окна настроек (обычный размер) ===== */
+.overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--bg),var(--bg2));z-index:10;overflow:auto;padding:12px;font-size:16px}
+.ov-head{display:flex;align-items:center;gap:10px}
+.ov-head h2{flex:1;margin:0;font-size:20px}
+.ov-head .cross{width:34px;height:34px}
+.field{margin:10px 0}
+.field label{display:block;font-size:13px;color:var(--sub);margin-bottom:4px;font-weight:700}
+select,input[type=time],input[type=number]{width:100%;font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:2px solid var(--chip);background:#fff;color:#222}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:44px;height:44px;border-radius:12px;background:var(--accent);color:#fff;font-size:24px;font-weight:800;flex:none}
+.stepper input{text-align:center;font-size:20px;font-weight:800;width:70px}
+.times{display:grid;grid-template-columns:1fr;gap:8px}
+.times .t{display:flex;align-items:center;gap:8px;font-size:14px}
+.times .t span{min-width:78px;color:var(--sub);font-weight:700}
+.themes{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:62px;height:62px;border-radius:50%;border:3px solid transparent;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05;padding:2px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.65);word-break:break-word}
+.sw.sel{border-color:var(--text);box-shadow:0 0 0 3px #fff inset}
+.btn.row-btn{font-size:14px;min-height:40px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.savebar{position:sticky;bottom:-12px;background:var(--bg2);padding:8px 0;margin-top:10px;z-index:2;border-top:2px solid var(--chip)}
+.fileinfo{font-size:12px;color:var(--sub);margin-top:4px}
+ol{padding-left:22px;line-height:1.45;font-size:15px}
+ol li{margin-bottom:8px}
+.langgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.langgrid .btn{display:flex;align-items:center;gap:10px;font-size:15px;min-height:48px;background:var(--panel)}
+.langgrid .btn.sel{outline:3px solid var(--accent)}
+.langgrid .flag{width:28px;height:19px}
+.credit{display:flex;align-items:center;justify-content:center;gap:5px;margin:18px 0 4px;opacity:.6;font-size:8px;line-height:1.25;text-align:left;color:var(--sub)}
+.credit img{height:14px;width:auto;border-radius:2px;flex:none}
+/* popup расширения */
+body.popup{width:max-content;min-width:calc(6 * var(--cm) + 16px);height:auto;overflow:auto;padding:8px;background:linear-gradient(160deg,var(--bg),var(--bg2))}
+body.popup .page{width:340px;font-size:16px}
+body.alertwin{padding:0;overflow:hidden}
+`;
+
+/* ===== Звук ===== */
+let _ac = null, _audio = null;
+function acx() { _ac = _ac || new (window.AudioContext || window.webkitAudioContext)(); if (_ac.state === 'suspended') _ac.resume(); return _ac; }
+function tone(freq, t0, dur, vol, type) {
+  const a = acx(), osc = a.createOscillator(), g = a.createGain(); osc.type = type || 'sine'; osc.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, a.currentTime + t0); g.gain.exponentialRampToValueAtTime(vol || 0.3, a.currentTime + t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + t0 + dur);
+  osc.connect(g); g.connect(a.destination); osc.start(a.currentTime + t0); osc.stop(a.currentTime + t0 + dur + 0.05);
+}
+const MELODIES = {
+  1: [[523, 0], [659, .25], [784, .5], [1047, .75], [784, 1.1], [1047, 1.35], [1319, 1.7]],                                   // «колокольчик»
+  2: [[659, 0], [523, .3], [659, .6], [523, .9], [784, 1.3], [659, 1.6], [523, 1.9], [392, 2.2]],                              // «ding-dong»
+  3: [[880, 0], [880, .25], [880, .5], [0, .75], [988, 1], [988, 1.25], [988, 1.5], [0, 1.75], [1175, 2], [1175, 2.25]]       // будильник
+};
+function playMelody(n) { try { (MELODIES[n] || MELODIES[1]).forEach(([f, t]) => { if (f) tone(f, t, 0.35, 0.32, n === 3 ? 'square' : 'triangle'); }); } catch (e) { /* */ } }
+function beep() { try { [0, 0.22, 0.44].forEach((o, i) => tone(880 + i * 220, o, 0.18, 0.3, 'sine')); } catch (e) { /* */ } }
+function speakWeb(langKey) {
+  const L = LANGS[langKey];
+  try {
+    const ss = window.speechSynthesis; if (!ss) { beep(); return false; }
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(L.pill); u.lang = L.speech; u.rate = 0.95; u.volume = 1;
+    const vs = ss.getVoices(), pre = L.speech.slice(0, 2).toLowerCase();
+    const v = vs.find((x) => x.lang && x.lang.replace('_', '-').toLowerCase() === L.speech.toLowerCase()) || vs.find((x) => x.lang && x.lang.toLowerCase().startsWith(pre));
+    if (v) u.voice = v; else beep();
+    setTimeout(() => ss.speak(u), 450);
+    return !!v;
+  } catch (e) { return false; }
+}
+function playRingtone(src) { try { stopWeb(); _audio = new Audio(src); _audio.volume = 1; _audio.play().catch(() => beep()); setTimeout(() => { try { _audio && _audio.pause(); } catch (e) { /* */ } }, 12000); } catch (e) { beep(); } }
+function playSound(s) { if (s.sound === 'melody') playMelody(s.melody); else if (s.sound === 'ringtone' && s.ringtone) playRingtone(s.ringtone); else speakWeb(s.lang); }
+function stopWeb() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { /* */ } try { if (_audio) { _audio.pause(); _audio = null; } } catch (e) { /* */ } }
+
+/* ===================== Интерфейс ===================== */
+function createApp(root, env, mode) {
+  document.body.classList.add(mode);
+  document.documentElement.style.setProperty('--cm', CM_PX + 'px');
+  const style = document.createElement('style'); style.textContent = APP_CSS; document.head.appendChild(style);
+  let S = normState(null), D = null, overlay = null, previewAlert = false, confirmOn = false, toast = '';
+  const lang = () => (D && overlay === 'settings' ? D.lang : S.lang);
+  const I = () => I18N[lang()] || I18N.ru;
+  const setToast = (m) => { toast = m; render(); setTimeout(() => { toast = ''; render(); }, 1800); };
+  const download = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); };
+
+  function statusHtml() {
+    const t = I18N[S.lang];
+    if (!S.enabled) return '<div class="status">' + esc(t.off) + '</div>';
+    const n = nextDose(S, new Date());
+    if (!n) return '<div class="status">' + esc(t.none) + '</div>';
+    return '<div class="status">' + esc(t.next) + ':<br><b>' + n.time + '</b><br><small>' + esc(fmtIn(t, n.at - new Date())) + '</small></div>';
+  }
+  function bigButton() {
+    const L = LANGS[S.lang], t = I18N[S.lang], a = S.active;
+    const sub = a && a.at && Date.now() < a.at ? '<small>' + esc(fmtIn(t, a.at - Date.now())) + '</small>' : '';
+    return '<div class="bigwrap"><button class="big" data-act="take">' + CROSS + '<span>' + esc(L.pill) + '</span>' + (isRinging(a) ? '<span class="snd">🔊 ♪ ♫</span>' : '') + sub + '</button></div>';
+  }
+  function topRow(full) {
+    const t = I18N[S.lang];
+    return '<div class="skhead">' + CROSS + '<span class="sp"></span>' +
+      (full ? '<button class="sq" data-act="settings" title="' + esc(t.settings) + '">' + ICON_GEAR + '</button>' +
+        '<button class="sq hp" data-act="help" title="' + esc(t.instruction) + '">' + ICON_HELP + '</button>' +
+        '<button class="sq lg" data-act="lang" title="' + esc(t.language) + '">' + GLOBE + flagSvg(S.lang) + '</button>' : '') +
+      '<button class="sq cl" data-act="closeapp" title="' + esc(t.close) + '">' + ICON_X + '</button></div>';
+  }
+  function footRow() {
+    const t = I18N[S.lang];
+    return '<div class="skfoot"><button class="btn off' + (S.enabled ? '' : ' faded') + '" data-act="disable">' + esc(t.disable) + '</button><button class="btn on' + (S.enabled ? ' faded' : '') + '" data-act="enable">' + esc(t.on) + '</button></div>';
+  }
+  function appBox(full) {
+    const t = I18N[S.lang], alertOn = !!S.active || previewAlert;
+    const inner = confirmOn ? '<div class="done">✓ ' + esc(t.done) + '</div>' : (alertOn && S.enabled !== false ? bigButton() : statusHtml());
+    return '<div class="app">' + topRow(full) + '<div class="skmain">' + inner + '</div>' + (full || true ? footRow() : '') + '</div>';
+  }
+
+  function settingsHtml() {
+    const t = I(), d = D || S, sw = THEME_ORDER.map((k) => '<button class="sw' + (d.theme === k ? ' sel' : '') + '" data-theme="' + k + '" style="background:linear-gradient(135deg,' + THEMES[k].accent + ',' + THEMES[k].bg2 + ')">' + esc(I18N[d.lang].themes[k]) + '</button>').join('');
+    const langs = LANG_ORDER.map((k) => '<option value="' + k + '"' + (d.lang === k ? ' selected' : '') + '>' + esc(LANGS[k].name) + '</option>').join('');
+    const times = d.times.slice(0, d.count).map((x, i) => '<div class="t"><span>' + esc(t.dose) + ' ' + (i + 1) + '</span><input type="time" data-time="' + i + '" value="' + x + '"></div>').join('');
+    const snd = ['voice', 'melody', 'ringtone'].map((k) => '<option value="' + k + '"' + (d.sound === k ? ' selected' : '') + '>' + esc(t[{ voice: 'sndVoice', melody: 'sndMelody', ringtone: 'sndRing' }[k]]) + '</option>').join('');
+    const mel = [1, 2, 3].map((n) => '<option value="' + n + '"' + (d.melody === n ? ' selected' : '') + '>♪ ' + n + '</option>').join('');
+    return '<div class="field"><label>' + esc(t.language) + '</label><div class="row">' + flagSvg(d.lang) + '<select data-f="lang" style="flex:1">' + langs + '</select></div></div>' +
+      '<div class="field"><label>' + esc(t.times) + '</label><div class="stepper"><button data-act="cminus">−</button><input type="number" min="1" max="6" data-f="count" value="' + d.count + '"><button data-act="cplus">+</button></div></div>' +
+      '<div class="field times">' + times + '</div>' +
+      '<div class="field"><label>' + esc(t.lead) + '</label><select data-f="lead">' + LEAD_OPTS.map((n) => '<option value="' + n + '"' + (d.lead === n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></div>' +
+      
+      '<div class="field"><label>' + esc(t.theme) + '</label><div class="themes">' + sw + '</div></div>' +
+      '<div class="field"><label>' + esc(t.sound) + '</label><div class="row"><select data-f="sound" style="flex:1">' + snd + '</select><button class="btn pri row-btn" data-act="prev" title="▶">▶</button></div>' +
+      (d.sound === 'melody' ? '<div style="margin-top:6px"><select data-f="melody">' + mel + '</select></div>' : '') +
+      (d.sound === 'ringtone' ? '<div style="margin-top:6px"><input type="file" accept="audio/*" data-f="file"><div class="fileinfo">' + esc(d.ringName || '') + '</div></div>' : '') + '</div>' +
+      '<div class="row savebar"><button class="btn pri row-btn" data-act="save">✔ ' + esc(t.save) + '</button><button class="btn row-btn" data-act="test">🔔 ' + esc(t.test) + '</button><button class="btn row-btn" data-act="ics">📅 ' + esc(t.cal) + '</button></div>' +
+      '<div class="credit"><img src="' + CREDIT_LOGO + '" alt=""><span>Balian Design LLC. Armenia<br>+374-55146254 · balian_dm@yahoo.com</span></div>';
+  }
+  function helpHtml() { const t = I(); return '<ol>' + t.steps.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol>'; }
+  function langHtml() { return '<div class="langgrid">' + LANG_ORDER.map((k) => '<button class="btn' + (S.lang === k ? ' sel' : '') + '" data-lang="' + k + '">' + flagSvg(k) + '<span>' + esc(LANGS[k].name) + '</span></button>').join('') + '</div>'; }
+  function ovBlock(title, body) {
+    const t = I();
+    return '<div class="ov-head">' + CROSS + '<h2>' + esc(title) + '</h2><button class="btn" data-act="closeov">✖ ' + esc(t.close) + '</button></div>' + body;
+  }
+
+  function render(auto) {
+    if (auto) {   // фоновое обновление не должно сбивать ввод
+      const ae = document.activeElement;
+      if (overlay || (ae && root.contains(ae) && /INPUT|SELECT/.test(ae.tagName))) return;
+    }
+    applyTheme(overlay === 'settings' && D ? D.theme : S.theme);
+    document.documentElement.dir = RTL_LANGS.includes(lang()) ? 'rtl' : 'ltr';
+    const alertOn = !!S.active || previewAlert;
+    let h = '';
+    const ovBody = overlay === 'settings' ? ovBlock(I().settings, settingsHtml()) : overlay === 'help' ? ovBlock(I().instruction, helpHtml()) : overlay === 'lang' ? ovBlock(I().language, langHtml()) : '';
+    if (mode === 'alertwin') { root.innerHTML = '<div style="display:flex;justify-content:center;align-items:flex-start;height:100vh">' + appBox(false) + '</div>'; return; }
+    if (mode === 'pwa') {
+      const shown = env.isShown();
+      if (!shown) h += '<div class="welcome">' + CROSS + '</div><button class="fab" data-act="open">' + CROSS + '</button>';
+      else {
+        if (alertOn) h += '<div class="dim"></div>';
+        h += '<div class="dockwrap ' + (alertOn ? 'top' : 'bottom') + '">' + appBox(true) + '</div>';
+      }
+      if (ovBody) h += '<div class="overlay">' + ovBody + '</div>';
+      if (env.needGate && env.needGate()) h += '<div class="gate">' + esc(I18N[S.lang].soundGate) + '</div>';
+    } else {      // popup расширения: главное окно 6x4 см; настройки/инструкция/язык — отдельным видом
+      h = ovBody ? '<div class="page">' + ovBody + '</div>' : appBox(true);
+    }
+    if (toast) h += '<div class="toast">' + esc(toast) + '</div>';
+    root.innerHTML = h;
+  }
+
+  function openD() { D = { lead: S.lead, lang: S.lang, theme: S.theme, count: S.count, times: S.times.slice(), sound: S.sound, melody: S.melody, ringtone: S.ringtone, ringName: S.ringName }; }
+  function commit() {
+    Object.assign(S, { lead: D.lead, lang: D.lang, theme: D.theme, count: D.count, times: D.times.slice(0, D.count), sound: D.sound, melody: D.melody, ringtone: D.ringtone, ringName: D.ringName });
+    if (S.sound === 'ringtone' && !S.ringtone) S.sound = 'voice';
+    S = normState(S); env.save(S);
+  }
+  function autosave() { if (!D) return; const t = D.theme, l = D.lang; commit(); env.autosaved && env.autosaved(); }
+  function setCount(n) {
+    n = Math.min(6, Math.max(1, n | 0 || 1)); D.count = n;
+    const old = D.times.slice(); D.times = PRESETS[n].map((x, i) => old[i] || x); autosave(); render();
+  }
+
+  root.addEventListener('change', (e) => {
+    const f = e.target.dataset.f;
+    if (e.target.dataset.time !== undefined) { D.times[+e.target.dataset.time] = e.target.value || '12:00'; autosave(); return; }
+    if (f === 'lang') { D.lang = e.target.value; autosave(); render(); }
+    else if (f === 'count') setCount(+e.target.value);
+    else if (f === 'lead') { D.lead = +e.target.value; autosave(); }
+    else if (f === 'sound') { D.sound = e.target.value; autosave(); render(); }
+    else if (f === 'melody') { D.melody = +e.target.value; autosave(); playMelody(D.melody); }
+    else if (f === 'file') {
+      const file = e.target.files && e.target.files[0]; if (!file) return;
+      if (file.size > 1.2 * 1024 * 1024) { setToast(I().tooBig); e.target.value = ''; return; }
+      const r = new FileReader(); r.onload = () => { D.ringtone = r.result; D.ringName = file.name; D.sound = 'ringtone'; autosave(); render(); }; r.readAsDataURL(file);
+    }
+  });
+  root.addEventListener('input', (e) => { if (e.target.dataset.time !== undefined && e.target.value) { D.times[+e.target.dataset.time] = e.target.value; autosave(); return; } if (e.target.dataset.f === 'count' && e.target.value !== '' && +e.target.value >= 1 && +e.target.value <= 6) setCount(+e.target.value); });
+  root.addEventListener('click', (e) => {
+    const th = e.target.closest('.sw'); if (th && D) { D.theme = th.dataset.theme; autosave(); render(); return; }
+    const lb = e.target.closest('[data-lang]');
+    if (lb) { S.lang = lb.dataset.lang; if (D) D.lang = S.lang; overlay = null; env.save(S); render(); return; }
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act; env.gesture && env.gesture();
+    if (act === 'settings') { openD(); overlay = 'settings'; render(); }
+    else if (act === 'help') { overlay = 'help'; render(); }
+    else if (act === 'lang') { overlay = 'lang'; render(); }
+    else if (act === 'closeov') { overlay = null; D = null; render(); }
+    else if (act === 'prev') { stopWeb(); playSound(D); setToast('♪ ' + I().sound); }
+    else if (act === 'cminus') setCount(D.count - 1);
+    else if (act === 'cplus') setCount(D.count + 1);
+    else if (act === 'save') { commit(); overlay = null; D = null; setToast(I18N[S.lang].saved); }
+    else if (act === 'test') { commit(); env.test ? env.test(S) : null; }
+    else if (act === 'ics') { commit(); download('pills.ics', icsText(S), 'text/calendar'); }
+    else if (act === 'disable') { S.enabled = false; S.active = null; previewAlert = false; stopWeb(); env.save(S); render(); }
+    else if (act === 'enable') { S.enabled = true; env.save(S); render(); }
+    else if (act === 'take') { previewAlert = false; env.take(S); }
+    else if (act === 'closeapp') { env.hide && env.hide(); }
+    else if (act === 'open') { env.show && env.show(); }
+  });
+
+  return {
+    set(state) { S = normState(state); render(); },
+    get state() { return S; },
+    preview(v) { previewAlert = v; render(); },
+    confirm(v) { confirmOn = v; render(); },
+    render, toast: setToast
+  };
+}
+</script>
+<script>/* Android / PWA: логика приложения (хранилище, таймер, сигнал) */
+(function () {
+  const KEY = 'pillreminder.v1';
+  let unlocked = false, S = null, app = null, lastSpeak = 0, wake = null, shown = true, hideTimer = null;
+  const load = () => { try { return normState(JSON.parse(localStorage.getItem(KEY))); } catch (e) { return normState(null); } };
+  const persist = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* */ } };
+
+  function unlock() {
+    if (unlocked) return; unlocked = true;
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) { /* */ }
+    try { _ac = _ac || new (window.AudioContext || window.webkitAudioContext)(); _ac.resume(); } catch (e) { /* */ }
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { /* */ }
+    const g = document.querySelector('.gate'); if (g) g.remove();
+  }
+  async function notify() {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const L = LANGS[S.lang], reg = await navigator.serviceWorker.getRegistration();
+      const opts = { body: S.active && S.active.time ? S.active.time : '', icon: 'icon-192.png', tag: 'pill', requireInteraction: true, vibrate: [300, 150, 300, 150, 300], renotify: true };
+      if (reg) reg.showNotification(L.pill, opts); else new Notification(L.pill, opts);
+    } catch (e) { /* */ }
+  }
+  async function keepAwake(on) {
+    try { if (on && 'wakeLock' in navigator) wake = await navigator.wakeLock.request('screen'); else if (wake) { wake.release(); wake = null; } } catch (e) { /* */ }
+  }
+  function alertNow() {
+    lastSpeak = Date.now(); playSound(S);
+    try { navigator.vibrate && navigator.vibrate([400, 200, 400, 200, 400]); } catch (e) { /* */ }
+  }
+  const env = {
+    needGate: () => S && S.enabled && !unlocked,
+    gesture: unlock,
+    isShown: () => shown,
+    show() { shown = true; app.render(); },
+    hide() { shown = false; app.render(); },
+    save(s) { S = s; persist(S); },
+    take(s) {
+      stopWeb(); keepAwake(false);
+      if (S.active) { if (S.active.time === 'test') S.active = null; else markTaken(S, new Date()); persist(S); }
+      try { navigator.serviceWorker.getRegistration().then((r) => r && r.getNotifications().then((n) => n.forEach((x) => x.close()))); } catch (e) { /* */ }
+      app.preview(false); app.set(S); app.confirm(true);
+      clearTimeout(hideTimer); hideTimer = setTimeout(() => { app.confirm(false); shown = false; app.render(); }, 5000);   // исчезает через 5 секунд
+    },
+    test() { shown = true; app.preview(true); unlock(); alertNow(); keepAwake(true); }
+  };
+  function tick() {
+    if (!S.enabled) { app.render(true); return; }
+    const now = new Date();
+    if (!S.active) {
+      const due = dueDose(S, now);
+      if (due) {   // за 5 минут до приёма приложение появляется и сразу подаёт сигнал
+        S.active = { time: due.time, at: due.at.getTime() }; persist(S); shown = true; clearTimeout(hideTimer); app.confirm(false); app.set(S);
+        lastSpeak = 0; unlock(); alertNow(); notify(); keepAwake(true);
+      }
+    } else {   // сигнал повторяется каждую минуту до приёма, затем чаще; замолкает после нажатия кнопки
+      const every = ringEvery(S.active);
+      if (Date.now() - lastSpeak >= every) { alertNow(); keepAwake(true); }
+    }
+    app.render(true);
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    S = load(); app = createApp(document.getElementById('app'), env, 'pwa'); app.set(S);
+    S = app.state; if (S.active) { alertNow(); keepAwake(true); }
+    document.addEventListener('pointerdown', unlock, { once: true });
+    setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); if (S.active) keepAwake(true); } });
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+    window.__pill = { get S() { return S; }, app, tick, fire() { S.active = { time: 'test' }; persist(S); app.set(S); alertNow(); } };
+  });
+})();
+</script></body></html>
